@@ -1,53 +1,71 @@
 exportPdfBtn.addEventListener('click', () => {
+  if (!tokenTable.querySelector('tr')) {
+    alert("No tokens to export. Run lexer first.");
+    return;
+  }
+
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({unit: 'pt', format: 'a4'});
-  
-  const margin = 50;
+  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
-  const rowHeight = 20;
+  const margin = 50;
+  const rowHeight = 25;
   const colWidth = (pageWidth - 2 * margin) / 2;
+
   let y = margin;
 
   // Title
   doc.setFontSize(26);
-  doc.text('MercuryScript', pageWidth / 2, y, { align: 'center' });
+  doc.text("MercuryScript", pageWidth / 2, y, { align: 'center' });
   y += 40;
 
   // Table headers
-  doc.setFontSize(16);
-  doc.text('Lexeme', margin + colWidth/2, y, { align: 'center' });
-  doc.text('Token', margin + colWidth + colWidth/2, y, { align: 'center' });
+  doc.setFontSize(18);
+  doc.text("Lexeme", margin + colWidth / 2, y, { align: 'center' });
+  doc.text("Token", margin + colWidth + colWidth / 2, y, { align: 'center' });
   y += rowHeight;
 
-  // Draw table rows
   const rows = Array.from(tokenTable.querySelectorAll('tr')).map(tr => {
     const cols = tr.querySelectorAll('td');
     return [cols[0].innerText, cols[1].innerText];
   });
 
-  rows.forEach(([lex, tok], index) => {
-    // page break
+  doc.setFontSize(14);
+
+  for (let i = 0; i < rows.length; i++) {
+    const [lex, tok] = rows[i];
+
+    // Check page break
     if (y + rowHeight > pageHeight - margin) {
       doc.addPage();
-      y = margin + 20;
+      y = margin;
     }
 
-    // fit text to width (truncate + ellipsis)
-    const fitText = (text, width) => {
-      let str = text;
-      while (doc.getTextWidth(str) > width && str.length > 0) {
-        str = str.slice(0, -1);
-      }
-      if (str.length < text.length) str = str.slice(0, -3) + '...';
-      return str;
-    }
+    // Draw cells
+    doc.rect(margin, y - 18, colWidth, rowHeight);
+    doc.rect(margin + colWidth, y - 18, colWidth, rowHeight);
 
-    doc.setFontSize(14);
-    doc.text(fitText(lex, colWidth - 10), margin + 5, y);
-    doc.text(fitText(tok, colWidth - 10), margin + colWidth + 5, y);
+    // Fit text in cell
+    const fittedLex = fitTextToWidth(doc, lex, colWidth - 10);
+    const fittedTok = fitTextToWidth(doc, tok, colWidth - 10);
+
+    doc.text(fittedLex, margin + 5, y);
+    doc.text(fittedTok, margin + colWidth + 5, y);
+
     y += rowHeight;
-  });
+  }
 
-  doc.save('MercuryScriptTokens.pdf');
+  doc.save('tokens.pdf');
 });
+
+// Fit text to width (similar to Java's fitTextToWidth)
+function fitTextToWidth(doc, text, maxWidth) {
+  let fitted = text;
+  const ellipsis = '...';
+  while (doc.getTextWidth(fitted) > maxWidth && fitted.length > 0) {
+    fitted = fitted.slice(0, -1);
+  }
+  if (fitted.length < text.length) fitted = fitted.slice(0, -3) + ellipsis;
+  return fitted;
+}
