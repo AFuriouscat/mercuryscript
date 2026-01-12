@@ -1,100 +1,107 @@
-const KEYWORDS = new Map([
-  ["global","gb"], ["constant","const"], ["if","if"], ["then","then"],
-  ["elif","elif"], ["else","else"], ["for","for"], ["while","while"],
-  ["in","in"], ["do","do"], ["continue","cont"], ["break","br"],
-  ["switch","switch"], ["case","case"], ["default","def"],
-  ["return","ret"], ["function","func"], ["end","end"],
+class Token {
+  constructor(lexeme, token) {
+    this.lexeme = lexeme;
+    this.token = token;
+  }
+}
 
-  ["var","var"], ["integer","int"], ["int","int"],
-  ["float","flt"], ["double","db"], ["character","ch"],
-  ["char","ch"], ["string","str"], ["str","str"],
-  ["boolean","bool"], ["bool","bool"], ["void","void"],
+class Lexer {
+  constructor(input) {
+    this.input = input || '';
+    this.pos = 0;
+    this.length = this.input.length;
 
-  ["not","not"], ["or","or"], ["and","and"], ["xor","xor"]
-]);
-
-[
-  "self","delta","position","globalPosition","rotation",
-  "globalRotation","scale","visible","enabled",
-  "anchorX","anchorY","nil",
-  "scan","print","move","moveAndSlide",
-  "rotates","scales","anchors","vector2",
-  "direction","free"
-].forEach(k => KEYWORDS.set(k, "id"));
-
-export function tokenize(input) {
-  const tokens = [];
-  let pos = 0;
-
-  const peek = () => input[pos];
-  const peekNext = () => input[pos + 1];
-  const advance = () => pos++;
-
-  while (pos < input.length) {
-    let c = peek();
-
-    if (/\s/.test(c)) { advance(); continue; }
-
-    // comments
-    if (c === '/' && peekNext() === '/') {
-      while (pos < input.length && peek() !== '\n') advance();
-      continue;
-    }
-
-    if (c === '/' && peekNext() === '*') {
-      advance(); advance();
-      while (pos < input.length && !(peek() === '*' && peekNext() === '/')) advance();
-      advance(); advance();
-      continue;
-    }
-
-    // string
-    if (c === '"') {
-      advance();
-      let s = "";
-      while (pos < input.length && peek() !== '"') {
-        s += peek();
-        advance();
-      }
-      advance();
-      tokens.push({ lexeme: s, token: "str_lit" });
-      continue;
-    }
-
-    // number
-    if (/\d/.test(c) || (c === '-' && /\d/.test(peekNext()))) {
-      let start = pos;
-      if (c === '-') advance();
-      while (/\d/.test(peek())) advance();
-      if (peek() === '.') {
-        advance();
-        while (/\d/.test(peek())) advance();
-      }
-      tokens.push({ lexeme: input.slice(start, pos), token: "num" });
-      continue;
-    }
-
-    // identifier
-    if (/[A-Za-z]/.test(c)) {
-      let start = pos;
-      while (/[A-Za-z0-9]/.test(peek())) advance();
-      const lex = input.slice(start, pos);
-      tokens.push({ lexeme: lex, token: KEYWORDS.get(lex) || "id" });
-      continue;
-    }
-
-    // operators
-    const two = input.substr(pos, 2);
-    const ops = ["==","!=","<=",">=","+=","-=","*=","/=","%=","++","--","||","&&"];
-    if (ops.includes(two)) {
-      tokens.push({ lexeme: two, token: two });
-      pos += 2;
-      continue;
-    }
-
-    tokens.push({ lexeme: c, token: c });
-    advance();
+    this.KEYWORDS = {
+      "global": "gb", "constant": "const", "if": "if", "then": "then", "elif": "elif",
+      "else": "else", "for": "for", "while": "while", "in": "in", "do": "do",
+      "continue": "cont", "break": "br", "switch": "switch", "case": "case",
+      "default": "def", "return": "ret", "function": "func", "end": "end",
+      "var": "var", "integer": "int", "int": "int", "float": "flt", "double": "db",
+      "character": "ch", "char": "ch", "string": "str", "str": "str",
+      "boolean": "bool", "bool": "bool", "void": "void",
+      "self":"id","delta":"id","position":"id","globalPosition":"id","rotation":"id",
+      "globalRotation":"id","scale":"id","visible":"id","enabled":"id","anchorX":"id",
+      "anchorY":"id","nil":"id",
+      "scan":"id","print":"id","move":"id","moveAndSlide":"id","rotates":"id",
+      "scales":"id","anchors":"id","vector2":"id","direction":"id","free":"id",
+      "not":"not","or":"or","and":"and","xor":"xor"
+    };
   }
 
-  return tokens;
+  peek() { return this.input[this.pos]; }
+  peekNext() { return this.pos + 1 < this.length ? this.input[this.pos + 1] : '\0'; }
+  advance() { this.pos++; }
+
+  tokenize() {
+    let out = [];
+
+    while (this.pos < this.length) {
+      let c = this.peek();
+
+      // whitespace
+      if (/\s/.test(c)) { this.advance(); continue; }
+
+      // comments
+      if (c === '/' && this.peekNext() === '/') {
+        while (this.pos < this.length && this.peek() !== '\n') this.advance();
+        continue;
+      }
+      if (c === '/' && this.peekNext() === '*') {
+        this.advance(); this.advance();
+        while (this.pos < this.length && !(this.peek() === '*' && this.peekNext() === '/')) this.advance();
+        if (this.pos < this.length) { this.advance(); this.advance(); }
+        continue;
+      }
+
+      // strings
+      if (c === '"') {
+        this.advance();
+        let sb = '';
+        while (this.pos < this.length && this.peek() !== '"') {
+          sb += this.peek();
+          this.advance();
+        }
+        if (this.pos < this.length && this.peek() === '"') this.advance();
+        out.push(new Token(sb, 'str_lit'));
+        continue;
+      }
+
+      // numbers
+      if (/\d/.test(c) || (c === '-' && /\d/.test(this.peekNext()))) {
+        let start = this.pos;
+        if (c === '-') this.advance();
+        while (/\d/.test(this.peek())) this.advance();
+        if (this.peek() === '.') { this.advance(); while (/\d/.test(this.peek())) this.advance(); }
+        out.push(new Token(this.input.slice(start, this.pos), 'num'));
+        continue;
+      }
+
+      // identifiers / keywords
+      if (/[A-Za-z]/.test(c)) {
+        let start = this.pos;
+        this.advance();
+        while (/[A-Za-z0-9]/.test(this.peek())) this.advance();
+        let lex = this.input.slice(start, this.pos);
+        let tok = this.KEYWORDS[lex] || 'id';
+        out.push(new Token(lex, tok));
+        continue;
+      }
+
+      // multi-char operators
+      let two = this.pos+1 < this.length ? this.input.slice(this.pos, this.pos+2) : null;
+      if (two) {
+        const map = {"==":"==","!=":"!=","<=":"<=",">=":">=","+=":"+=","-=":"-=","*=":"*=","/=":"/=","%=":"%=","++":"++","--":"--","||":"or","&&":"and"};
+        if (map[two]) { out.push(new Token(two,map[two])); this.pos+=2; continue; }
+      }
+
+      // single-char
+      const single = "=-+*/%^!<>()[].,:;'{}";
+      if (single.includes(c)) { out.push(new Token(c,c)); this.advance(); continue; }
+
+      // unknown
+      out.push(new Token(c,'unknown')); this.advance();
+    }
+
+    return out;
+  }
 }

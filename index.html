@@ -8,12 +8,13 @@
 </head>
 <body>
   <div class="container">
-    <div class="editor">
-      <h2>MercuryScript</h2>
-      <textarea id="codeArea" placeholder="Type your code here..."></textarea>
-      <button id="runBtn">Run</button>
+    <div class="editor-panel">
+      <h2>Mercury Script</h2>
+      <textarea id="codeArea" placeholder="Type MercuryScript code here..."></textarea>
+      <button id="runBtn">Run Lexer</button>
     </div>
-    <div class="output">
+
+    <div class="output-panel">
       <h2>Tokens</h2>
       <table id="tokenTable">
         <thead>
@@ -24,12 +25,16 @@
         </thead>
         <tbody></tbody>
       </table>
-      <button id="exportCsvBtn">Export CSV</button>
+      <div class="export-buttons">
+        <button id="exportCsv">Export CSV</button>
+        <button id="exportPdf">Export PDF</button>
+      </div>
     </div>
   </div>
 
-  <!-- Scripts -->
   <script src="lexer.js"></script>
   <script src="app.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
 </body>
 </html>
