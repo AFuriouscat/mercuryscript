@@ -1,3 +1,57 @@
+// Connect HTML elements
+const codeArea = document.getElementById('codeArea');
+const tokenTable = document.querySelector('#tokenTable tbody');
+const runBtn = document.getElementById('runBtn');
+const exportCsvBtn = document.getElementById('exportCsv');
+const exportPdfBtn = document.getElementById('exportPdf');
+
+// ------------------ Run Lexer ------------------
+runBtn.addEventListener('click', runLexer);
+
+function runLexer() {
+  const source = codeArea.value;
+  const lexer = new Lexer(source);
+  const tokens = lexer.tokenize();
+
+  // clear table
+  tokenTable.innerHTML = '';
+
+  // add rows
+  tokens.forEach(t => {
+    const row = document.createElement('tr');
+    const lexCell = document.createElement('td');
+    lexCell.innerText = t.lexeme;
+    const tokCell = document.createElement('td');
+    tokCell.innerText = t.token;
+    row.appendChild(lexCell);
+    row.appendChild(tokCell);
+    tokenTable.appendChild(row);
+  });
+}
+
+// ------------------ Export CSV ------------------
+exportCsvBtn.addEventListener('click', () => {
+  if (!tokenTable.querySelector('tr')) {
+    alert("No tokens to export. Run lexer first.");
+    return;
+  }
+
+  let csv = 'Lexeme,Token\n';
+  tokenTable.querySelectorAll('tr').forEach(row => {
+    const cols = row.querySelectorAll('td');
+    csv += `"${cols[0].innerText.replace(/"/g,'""')}","${cols[1].innerText.replace(/"/g,'""')}"\n`;
+  });
+
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'tokens.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+// ------------------ Export PDF ------------------
 exportPdfBtn.addEventListener('click', () => {
   if (!tokenTable.querySelector('tr')) {
     alert("No tokens to export. Run lexer first.");
@@ -59,7 +113,7 @@ exportPdfBtn.addEventListener('click', () => {
   doc.save('tokens.pdf');
 });
 
-// Fit text to width (similar to Java's fitTextToWidth)
+// ------------------ Fit text to width ------------------
 function fitTextToWidth(doc, text, maxWidth) {
   let fitted = text;
   const ellipsis = '...';
@@ -68,107 +122,4 @@ function fitTextToWidth(doc, text, maxWidth) {
   }
   if (fitted.length < text.length) fitted = fitted.slice(0, -3) + ellipsis;
   return fitted;
-}
-
-function runLexer() {
-  const source = codeArea.value;
-  const tokens = tokenize(source);
-
-  // clear table
-  tokenTable.innerHTML = '';
-  
-  // add rows
-  tokens.forEach(t => {
-    const row = document.createElement('tr');
-    const lexCell = document.createElement('td');
-    lexCell.innerText = t.lexeme;
-    const tokCell = document.createElement('td');
-    tokCell.innerText = t.token;
-    row.appendChild(lexCell);
-    row.appendChild(tokCell);
-    tokenTable.appendChild(row);
-  });
-}
-
-// Simple JS lexer based on your Java Lexer
-function tokenize(input) {
-  const KEYWORDS = {
-    global: 'gb', constant: 'const', if: 'if', then: 'then', elif: 'elif',
-    else: 'else', for: 'for', while: 'while', in: 'in', do: 'do',
-    continue: 'cont', break: 'br', switch: 'switch', case: 'case',
-    default: 'def', return: 'ret', function: 'func', end: 'end',
-    var: 'var', integer: 'int', int: 'int', float: 'flt', double: 'db',
-    character: 'ch', char: 'ch', string: 'str', str: 'str',
-    boolean: 'bool', bool: 'bool', void: 'void',
-    not: 'not', or: 'or', and: 'and', xor: 'xor'
-  };
-
-  const tokens = [];
-  let pos = 0;
-
-  function peek() { return input[pos]; }
-  function advance() { pos++; }
-  function peekNext() { return input[pos+1] || '\0'; }
-
-  while (pos < input.length) {
-    let c = peek();
-
-    if (/\s/.test(c)) { advance(); continue; }
-
-    // strings
-    if (c === '"') {
-      let str = '';
-      advance();
-      while (pos < input.length && peek() !== '"') { str += peek(); advance(); }
-      if (peek() === '"') advance();
-      tokens.push({ lexeme: str, token: 'str_lit' });
-      continue;
-    }
-
-    // numbers
-    if (/\d/.test(c) || (c === '-' && /\d/.test(peekNext()))) {
-      let start = pos;
-      if (c === '-') advance();
-      while (/\d/.test(peek())) advance();
-      if (peek() === '.') { advance(); while (/\d/.test(peek())) advance(); }
-      tokens.push({ lexeme: input.slice(start, pos), token: 'num' });
-      continue;
-    }
-
-    // identifiers & keywords
-    if (/[A-Za-z]/.test(c)) {
-      let start = pos;
-      advance();
-      while (/[A-Za-z0-9]/.test(peek())) advance();
-      const lex = input.slice(start, pos);
-      tokens.push({ lexeme: lex, token: KEYWORDS[lex] || 'id' });
-      continue;
-    }
-
-    // multi-char operators
-    const two = input.slice(pos, pos+2);
-    const multiCharOps = ['==','!=','>=','<=','+=','-=','*=','/=','%=','++','--','||','&&'];
-    if (multiCharOps.includes(two)) {
-      let tok = two;
-      if (two === '||') tok = 'or';
-      if (two === '&&') tok = 'and';
-      tokens.push({ lexeme: two, token: tok });
-      pos += 2;
-      continue;
-    }
-
-    // single-char tokens
-    const singleTokens = '=+-*/%^!<>(){}[],;.:\'';
-    if (singleTokens.includes(c)) {
-      tokens.push({ lexeme: c, token: c });
-      advance();
-      continue;
-    }
-
-    // unknown
-    tokens.push({ lexeme: c, token: 'unknown' });
-    advance();
-  }
-
-  return tokens;
 }
