@@ -2,7 +2,7 @@ body {
   font-family: Arial, sans-serif;
   margin: 0;
   padding: 0;
-  background: #f5f5f5;
+  background: #29273b;
 }
 
 .container {
@@ -19,7 +19,7 @@ body {
 }
 
 .editor-panel {
-  border-right: 2px solid #ccc;
+  border-right: 2px solid #251717;
 }
 
 textarea#codeArea {
@@ -43,7 +43,7 @@ table {
 }
 
 table th, table td {
-  border: 1px solid #999;
+  border: 1px solid #222227;
   padding: 8px;
   text-align: left;
   font-family: monospace;
